@@ -19,6 +19,7 @@ Identificar zonas y categorías de Buenos Aires con mayor potencial para el lanz
 | `data/raw/guiaoleo_restaurantes.jsonl` | 2.318 restaurantes de CABA con 1.075 reseñas públicas (captura vigente) | scraping de Guía Óleo |
 | `data/raw/guiaoleo_captura.json` | Fecha de la captura vigente y resultado del último intento de actualizarla | generado por el scraper |
 | `data/raw/trends_juntos.csv` | Interés de búsqueda semanal de 5 términos, Argentina, 5 años | Google Trends vía `pytrends` (punto 2) |
+| `data/raw/trends_control_caba.csv` | Control con palabras cotidianas (`sin tacc`, `saludable`, `vegano`, `organico`, `vegetariano`), solo CABA, 5 años, con fechas | Google Trends vía `pytrends` (bonus) |
 | `data/processed/establecimientos_clean.csv` | Resultado de la limpieza (2.811 locales) | generado por notebook 01 |
 | `data/processed/barrios_sin_registro.csv` | Barrios oficiales sin ningún local (Parque Chas) | generado por notebook 01 |
 | `data/processed/resenas_clean.csv` | 1.075 reseñas limpias con barrio, puntajes y precio | generado por notebook 03 |
@@ -28,6 +29,7 @@ Identificar zonas y categorías de Buenos Aires con mayor potencial para el lanz
 1. **Limpieza de la oferta** (`notebooks/01_limpieza_oferta.ipynb`): reparación de encoding, normalización a los 48 barrios oficiales, 12 duplicados eliminados, nulos etiquetados como `SIN DATO`, variables derivadas (`es_saludable_estricto`, `es_saludable_amplio`, `zona`).
 2. **EDA de la oferta** (`notebooks/02_eda_oferta.ipynb`): siete lentes en paralelo (volumen y concentración, densidad, composición de rubros, nivel de precio revelado, espacios verdes, oferta saludable, cruce final). Cada lente descarta una explicación alternativa distinta. Los rankings usan un umbral de volumen de 20 locales, y los candidatos a brecha se comparan contra el azar con una binomial.
 3. **Reseñas de consumidores** (`notebooks/03_resenas_punto3.ipynb`): scraping ético de Guía Óleo con captura de respaldo, asignación de barrio por punto en polígono, análisis de puntajes (comida, servicio, ambiente), análisis de texto por diccionario (ajustado leyendo el contexto de cada palabra dudosa, con test de dos proporciones), y cruce con la oferta del punto 1 y la búsqueda del punto 2.
+4. **Bonus** (`notebooks/04_bonus_busqueda_vs_oferta.ipynb`): cruce de búsqueda (punto 2 más un control propio en CABA) contra oferta (GCBA y Guía Óleo) por concepto, y bajada a zonas con un supuesto explícito.
 
 **Definición de "saludable"** (decisión del equipo, sobre la columna `cocina`): estricto = `NATURISTA` + `VEGETARIANA` (11 locales); amplio = estricto + `MEDITERRANEA`, `SUSHI`, `JAPONESA` (80 locales).
 
@@ -76,7 +78,7 @@ Si el sitemap no se puede bajar, se usa el último guardado. Si el `robots.txt` 
 
 Sobre 2.318 restaurantes relevados y 1.075 reseñas (948 con texto, 497 con precio declarado):
 
-- **Lo saludable que la gente busca y menciona es sin TACC.** Es el subtema saludable más mencionado en las reseñas (20 de 39), con lenguaje de escasez ("de esos pocos refugios", "no se consigue en todos lados"). En Google Trends, "sin TACC" promedia 73,5 de interés contra 3,9 de "alimentación saludable". Y la oferta especializada es mínima: 13 de 2.235 locales de Guía Óleo (0,6%); el registro del GCBA ni siquiera tiene la categoría. Es el cruce búsqueda alta / oferta baja que pide el bonus, y apunta a producto (panificados, almacén, para llevar).
+- **Lo saludable que la gente busca y menciona es sin TACC.** Es el subtema saludable más mencionado en las reseñas (20 de 39), con lenguaje de escasez ("de esos pocos refugios", "no se consigue en todos lados"). En Google Trends es el término saludable más buscado en CABA y el que más creció desde 2022 (ver el bonus). Y la oferta especializada es mínima: 13 de 2.235 locales de Guía Óleo (0,6%); el registro del GCBA ni siquiera tiene la categoría. Es el cruce búsqueda alta / oferta baja que pide el bonus, y apunta a producto (panificados, almacén, para llevar).
 - **Lo que más castiga una reseña es la espera.** La comida es la dimensión mejor puntuada (2,35/3, 48% "Excelente"). En el texto, el único tema que separa con firmeza las reseñas peor puntuadas de las mejores es la espera: 8,1% contra 2,4% (p = 0,003), y 13,2% contra 2,4% con un corte más estricto. La atención va al revés: se nombra para elogiar.
 - **Entre quienes ya consumen, el precio no predice la satisfacción.** Precio contra puntaje: r = 0,12. El precio se menciona parecido en reseñas buenas y malas (18,4% contra 15,7%, p = 0,38). Esto **no** dice que el precio no frene a quien no compra: quien no compra no reseña.
 - **Validación parcial del proxy del punto 1.** La oferta saludable correlaciona con el nivel de precios (mediana r = 0,43, media r = 0,54, percentil 75 r = 0,54) pero no con el porcentaje de reseñas con precio de $40.000 o más, y el proxy de ambientación premium no se sostiene.
@@ -84,11 +86,39 @@ Sobre 2.318 restaurantes relevados y 1.075 reseñas (948 con texto, 497 con prec
 
 > **Corrección respecto de la versión anterior:** el diccionario contaba "tener en cuenta" como precio y "rápido" como espera, y el léxico de sentimiento era circular con los temas ("caro" ya hacía negativa una reseña). Corregido, desaparece el hallazgo "el precio se menciona más cuando algo falla" y la espera se sostiene con números más chicos. La lectura "lo saludable casi no se habla" se descartó: no tenía vara de comparación contra la oferta existente.
 
+## Bonus — búsqueda alta contra oferta baja
+
+El caso pregunta dos cosas. Las respuestas están en `notebooks/04_bonus_busqueda_vs_oferta.ipynb`.
+
+**1. ¿Dónde hay alta búsqueda y baja oferta? En sin TACC.**
+
+| Concepto | Búsqueda en CABA (media 5 años) | Tendencia 2022-2025 | Oferta especializada |
+|---|---|---|---|
+| sin TACC | 65 (la más alta) | crece (+17) | 13 de 2.235 locales de Guía Óleo (0,6%); el GCBA no tiene la categoría |
+| vegano / vegetariano | 42 (dos términos sumados) | cae (−31) | 4 en el GCBA, 4 en Guía Óleo |
+| saludable / orgánico | 53 (dos términos sumados) | plana (−3) | 7 en el GCBA, 2 en Guía Óleo |
+
+La serie del punto 2 mostraba a "sin TACC" casi 20 veces arriba de "alimentación saludable", pero esa distancia salía de comparar un rótulo concreto con frases que casi nadie busca tal cual. Con un control propio (palabras cotidianas, solo CABA) sigue primero, con una ventaja de 1,7 veces, y es el que más crece. Las reseñas del punto 3 lo confirman desde el consumidor.
+
+**2. ¿Qué zonas? El Sur es la menos atendida; Caballito es el mejor candidato para un primer test.**
+
+Trends no baja a barrio, así que se supone que la necesidad sigue a la población. Es razonable para la celiaquía, que es una condición médica y no una preferencia de estilo de vida.
+
+- El **Sur** tiene 456 mil habitantes por local sin TACC especializado, más del doble que el resto (163 a 197 mil), y fuera de Almagro no tiene ninguno.
+- **Caballito** tiene 176 mil habitantes, 139 locales en Guía Óleo y ningún local sin TACC especializado. Le siguen Balvanera, Villa Urquiza, Villa Crespo y Retiro.
+- Flores, Villa Lugano, Barracas y Mataderos quedan afuera: tienen tan poca gastronomía que su cero no dice nada.
+- Ningún barrio es una brecha contra el azar: la oferta especializada es mínima en toda la Ciudad. Las zonas son **candidatos para validar**, no una recomendación cerrada.
+
+![Búsqueda sin TACC en CABA](images/08_busqueda_sin_tacc_caba.png)
+
+![Habitantes por local sin TACC](images/09_habitantes_por_local_sin_tacc.png)
+
 ## Recomendaciones preliminares
 
 - Priorizar la validación de demanda (punto 2) en **Balvanera, Monserrat y Flores** antes de hablar de oportunidad.
 - No leer "poca oferta saludable" como oportunidad sin cruzarla con demanda: el dataset describe oferta, no demanda.
 - **Para el producto:** validar una línea **sin TACC** (panificados y productos para llevar) como primera apuesta: es donde coinciden búsqueda alta, oferta especializada mínima y consumidores que dicen que cuesta encontrarla. Antes de invertir, medir el tamaño real de esa demanda (las reseñas son pocas y no se sabe de cuántas personas).
+- **Para la zona:** hacer el primer test en **Caballito** (mucha población, gastronomía activa, ninguna oferta sin TACC especializada). El Sur es la zona menos atendida, pero no hay datos suficientes para saber si puede pagar un producto premium.
 - **Para la experiencia:** si EcoFood vende en local propio o a través de cafés y restaurantes, el tiempo de espera es el punto crítico a cuidar.
 - **Para el precio:** el precio alto no castiga a quien ya compra. Si frena a quien no compra, estos datos no lo dicen: hace falta una encuesta o un relevamiento de precios de góndola.
 
@@ -104,7 +134,9 @@ Sobre 2.318 restaurantes relevados y 1.075 reseñas (948 con texto, 497 con prec
 - La comunidad de Guía Óleo es chica y nueva (1.075 reseñas en CABA, todas del último año) y el scraper no identifica autores: no se sabe cuántas personas distintas escribieron.
 - Las reseñas son de quien ya compró: no pueden medir si el precio frena a quien no compra.
 - El análisis de texto usa un diccionario explícito, no un modelo de lenguaje: es auditable, pero puede fallar con ironía y negaciones.
-- `trends_juntos.csv` (punto 2) se guardó sin la columna de fechas, así que hoy no se puede ver la evolución en el tiempo.
+- `trends_juntos.csv` (punto 2) se guardó sin la columna de fechas. En el bonus se reconstruyen a partir de lo que imprime el notebook del punto 2, verificando que las primeras filas coincidan.
+- La oferta medida es de **gastronomía**. Una línea de productos compite también en supermercados y dietéticas, que no están en ningún dataset del trabajo.
+- Las zonas del bonus dependen de un supuesto (la necesidad sin TACC sigue a la población), de la población del Censo 2010 y de una oferta especializada contada por el nombre del local, que es una cota inferior.
 
 ## Estructura del repositorio
 
@@ -112,7 +144,7 @@ Sobre 2.318 restaurantes relevados y 1.075 reseñas (948 con texto, 497 con prec
 ├── data/
 │   ├── raw/          # fuentes originales y scrape crudo
 │   └── processed/    # datos limpios (oferta y reseñas)
-├── notebooks/        # 01 limpieza, 02 EDA oferta, 03 reseñas, Google Trends (punto 2), competencia (punto 4)
+├── notebooks/        # 01 limpieza, 02 EDA oferta, 03 reseñas, 04 bonus, Google Trends (punto 2), competencia (punto 4)
 ├── scripts/          # scraper de Guía Óleo
 ├── images/           # gráficos para el deck
 ├── presentation/     # deck ejecutivo (pendiente)
@@ -123,9 +155,9 @@ Sobre 2.318 restaurantes relevados y 1.075 reseñas (948 con texto, 497 con prec
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install pandas numpy matplotlib jupyter requests beautifulsoup4 lxml
+pip install pandas numpy matplotlib jupyter requests beautifulsoup4 lxml pytrends
 cd notebooks
-jupyter lab   # ejecutar 01, luego 02, luego 03
+jupyter lab   # ejecutar 01, luego 02, luego 03, luego 04
 ```
 
 Para actualizar el scrape (opcional, tarda ~18 minutos y es reanudable; si falla, se mantiene la captura anterior):
@@ -135,4 +167,4 @@ python scripts/scrape_guiaoleo.py              # actualiza la captura vigente
 python scripts/scrape_guiaoleo.py --limit 20   # muestra de prueba, no toca la vigente
 ```
 
-El notebook 01 regenera `data/processed/establecimientos_clean.csv`; el 02 regenera los gráficos `01` a `03`; el 03 regenera `data/processed/resenas_clean.csv` y los gráficos `04` a `07`. Las rutas son relativas a `notebooks/`.
+El notebook 01 regenera `data/processed/establecimientos_clean.csv`; el 02 regenera los gráficos `01` a `03`; el 03 regenera `data/processed/resenas_clean.csv` y los gráficos `04` a `07`; el 04 regenera los gráficos `08` y `09` (usa la captura guardada de Trends; con `ACTUALIZAR_TRENDS = True` intenta consultar de nuevo y, si falla, sigue con la guardada). Las rutas son relativas a `notebooks/`.
