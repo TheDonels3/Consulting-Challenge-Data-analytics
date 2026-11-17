@@ -1,0 +1,14 @@
+{
+  "captura_vigente": {
+    "fecha": "2026-11-16T21:26:33",
+    "locales": 2318,
+    "resenas": 1075,
+    "completados_con_captura_anterior": 0,
+    "errores": 0
+  },
+  "ultimo_intento": {
+    "fecha": "2026-11-16T21:26:33",
+    "resultado": "ok",
+    "detalle": "captura inicial completa (entre 2026-11-16T21:04:39 y 2026-11-16T21:26:33)"
+  }
+}

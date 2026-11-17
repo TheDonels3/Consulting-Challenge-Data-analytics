@@ -4,3 +4,7 @@ __pycache__/
 .ipynb_checkpoints/
 .env
 .DS_Store
+
+# capturas en curso del scraper (la vigente si se versiona)
+data/raw/*.parcial.jsonl
+data/raw/*.tmp
